@@ -39,6 +39,23 @@ jobs:
             exit 1
           fi
 
+      - name: Verify tag commit is on main branch
+        if: github.event_name == 'push'
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" "origin/main"; then
+            echo "Tag commit $GITHUB_SHA is not contained in origin/main"
+            exit 1
+          fi
+
+      - name: Verify manual dispatch runs on main branch
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [ "${GITHUB_REF#refs/heads/}" != "main" ]; then
+            echo "Manual publish is only allowed on main"
+            exit 1
+          fi
+
       - name: Type check
         run: npm run typecheck
 
@@ -48,7 +65,14 @@ jobs:
       - name: Simulate publish payload
         run: npm publish --dry-run --access public
 
-      - name: Publish to npmjs
+      - name: Publish to npmjs with provenance (public repo)
+        if: github.event.repository.private == false
         run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to npmjs (private repo fallback)
+        if: github.event.repository.private == true
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
