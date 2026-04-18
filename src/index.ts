@@ -4,3 +4,4 @@ export * from './types/api';
 export * from './core/constraints';
 export * from './core/tree';
 export * from './core/engine';
+export * from './react/useControlledTree';
