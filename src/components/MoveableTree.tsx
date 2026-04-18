@@ -1,4 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { parseTreeJSON, stringifyTreeJSON } from '../core/serialization';
 import { addNode as addTreeNode, moveNode as moveTreeNode, removeNode as removeTreeNode, updateNode as updateTreeNode } from '../core/tree';
 import { useControlledTree } from '../react/useControlledTree';
 import type { MoveableTreeProps, MoveableTreeRef } from '../types/api';
@@ -77,8 +78,8 @@ export const MoveableTree = forwardRef<MoveableTreeRef, MoveableTreeProps>((prop
         });
       },
       focusNode: () => {},
-      exportJSON: () => JSON.stringify(treeRef.current),
-      importJSON: raw => applyNextTree(JSON.parse(raw), { source: 'api', reason: 'import' })
+      exportJSON: () => stringifyTreeJSON(treeRef.current),
+      importJSON: raw => applyNextTree(parseTreeJSON(raw), { source: 'api', reason: 'import' })
     }),
     [setTree]
   );
