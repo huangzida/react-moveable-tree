@@ -1,4 +1,5 @@
-import { forwardRef, useImperativeHandle } from 'react';
+import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { addNode as addTreeNode, moveNode as moveTreeNode, removeNode as removeTreeNode, updateNode as updateTreeNode } from '../core/tree';
 import { useControlledTree } from '../react/useControlledTree';
 import type { MoveableTreeProps, MoveableTreeRef } from '../types/api';
 import { TreeNode } from './TreeNode';
@@ -10,39 +11,76 @@ export const MoveableTree = forwardRef<MoveableTreeRef, MoveableTreeProps>((prop
     onChange: props.onChange
   });
 
+  const treeRef = useRef(tree);
+  treeRef.current = tree;
+
+  const findById = (id: string) => {
+    const walk = (nodes: typeof tree): (typeof tree)[number] | undefined => {
+      for (const node of nodes) {
+        if (node.id === id) {
+          return node;
+        }
+
+        const found = walk(node.children ?? []);
+        if (found) {
+          return found;
+        }
+      }
+
+      return undefined;
+    };
+
+    return walk(treeRef.current);
+  };
+
+  const applyNextTree = (
+    next: typeof tree,
+    meta: { source: 'api' | 'user' | 'external'; reason: 'drag' | 'resize' | 'add' | 'remove' | 'patch' | 'import' }
+  ): void => {
+    treeRef.current = next;
+    setTree(next, meta);
+  };
+
   useImperativeHandle(
     ref,
     () => ({
-      getTree: () => tree,
-      setTree: next => setTree(next, { source: 'api', reason: 'patch' }),
-      getNode: id => {
-        const walk = (nodes: typeof tree): (typeof tree)[number] | undefined => {
-          for (const node of nodes) {
-            if (node.id === id) {
-              return node;
-            }
-
-            const found = walk(node.children ?? []);
-            if (found) {
-              return found;
-            }
-          }
-
-          return undefined;
-        };
-
-        return walk(tree);
+      getTree: () => treeRef.current,
+      setTree: next => applyNextTree(next, { source: 'api', reason: 'patch' }),
+      getNode: id => findById(id),
+      updateNode: (id, patch, meta) => {
+        const next = updateTreeNode(treeRef.current, id, patch);
+        applyNextTree(next, { source: meta?.source ?? 'api', reason: meta?.reason ?? 'patch' });
       },
-      updateNode: () => {},
-      updateNodes: () => {},
-      addNode: () => {},
-      removeNode: () => {},
-      moveNode: () => {},
+      updateNodes: (patches, meta) => {
+        let next = treeRef.current;
+        for (const item of patches) {
+          next = updateTreeNode(next, item.id, item.patch);
+        }
+        applyNextTree(next, { source: meta?.source ?? 'api', reason: meta?.reason ?? 'patch' });
+      },
+      addNode: (parentId, node, meta) => {
+        applyNextTree(addTreeNode(treeRef.current, parentId, node), {
+          source: meta?.source ?? 'api',
+          reason: meta?.reason ?? 'add'
+        });
+      },
+      removeNode: (id, meta) => {
+        applyNextTree(removeTreeNode(treeRef.current, id), {
+          source: meta?.source ?? 'api',
+          reason: meta?.reason ?? 'remove'
+        });
+      },
+      moveNode: (id, toParentId, index, meta) => {
+        applyNextTree(moveTreeNode(treeRef.current, id, toParentId, index), {
+          source: meta?.source ?? 'api',
+          reason: meta?.reason ?? 'patch'
+        });
+      },
       focusNode: () => {},
-      exportJSON: () => JSON.stringify(tree),
-      importJSON: raw => setTree(JSON.parse(raw), { source: 'api', reason: 'import' })
+      exportJSON: () => JSON.stringify(treeRef.current),
+      importJSON: raw => applyNextTree(JSON.parse(raw), { source: 'api', reason: 'import' })
     }),
-    [setTree, tree]
+    [setTree]
   );
 
   return (

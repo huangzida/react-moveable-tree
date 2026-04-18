@@ -80,3 +80,57 @@ export function removeNode(tree: BoxNode[], id: NodeId): BoxNode[] {
     walk(draft);
   });
 }
+
+export function updateNode(tree: BoxNode[], id: NodeId, patch: Partial<BoxNode>): BoxNode[] {
+  return produce(tree, draft => {
+    const walk = (nodes: BoxNode[]): boolean => {
+      for (const node of nodes) {
+        if (node.id === id) {
+          Object.assign(node, patch);
+          return true;
+        }
+
+        if (walk(node.children ?? [])) {
+          return true;
+        }
+      }
+
+      return false;
+    };
+
+    walk(draft);
+  });
+}
+
+export function moveNode(tree: BoxNode[], id: NodeId, toParentId: NodeId, index = -1): BoxNode[] {
+  const moving = findNode(tree, id);
+  if (!moving) {
+    return tree;
+  }
+
+  const removed = removeNode(tree, id);
+
+  return produce(removed, draft => {
+    const walk = (nodes: BoxNode[]): boolean => {
+      for (const node of nodes) {
+        if (node.id === toParentId) {
+          node.children = node.children ?? [];
+          if (index < 0 || index >= node.children.length) {
+            node.children.push(moving);
+          } else {
+            node.children.splice(index, 0, moving);
+          }
+          return true;
+        }
+
+        if (walk(node.children ?? [])) {
+          return true;
+        }
+      }
+
+      return false;
+    };
+
+    walk(draft);
+  });
+}
