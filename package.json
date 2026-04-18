@@ -6,6 +6,10 @@
   "module": "dist/react-moveable-tree.js",
   "types": "dist/index.d.ts",
   "files": ["dist"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huangzida/react-moveable-tree.git"
+  },
   "peerDependencies": {
     "react": ">=17",
     "react-dom": ">=17"
