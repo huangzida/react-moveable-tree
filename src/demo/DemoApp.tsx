@@ -7,20 +7,18 @@ const createInitialTree = (): BoxNode[] => [
   {
     id: 'root-A',
     rect: { x: 24, y: 20, width: 420, height: 310 },
-    view: { slot: 'group' },
+    view: { className: 'custom-group', style: { color: 'red' } },
     data: { kind: 'group', label: 'Group A' },
     children: [
       {
         id: 'A-1',
         rect: { x: 24, y: 34, width: 150, height: 110 },
-        view: { slot: 'leaf' },
         data: { kind: 'leaf', label: 'Node A-1' },
         children: []
       },
       {
         id: 'A-2',
         rect: { x: 220, y: 166, width: 160, height: 110 },
-        view: { slot: 'leaf' },
         data: { kind: 'leaf', label: 'Node A-2' },
         children: []
       }
@@ -29,13 +27,11 @@ const createInitialTree = (): BoxNode[] => [
   {
     id: 'root-B',
     rect: { x: 476, y: 90, width: 280, height: 250 },
-    view: { slot: 'group' },
     data: { kind: 'group', label: 'Group B' },
     children: [
       {
         id: 'B-1',
         rect: { x: 36, y: 30, width: 110, height: 90 },
-        view: { slot: 'leaf' },
         data: { kind: 'leaf', label: 'Node B-1' },
         children: []
       }
@@ -78,7 +74,6 @@ export function DemoApp() {
     ref.current?.addNode(targetNodeId, {
       id,
       rect: { x: 16, y: 16, width: 120, height: 80 },
-      view: { slot: 'leaf' },
       data: { kind: 'leaf', label: `Node ${id}` },
       children: []
     });
@@ -293,15 +288,19 @@ export function DemoApp() {
           value={tree}
           onChange={(nextTree, meta) => {
             setTree(nextTree);
-            appendLog(`onChange source=${meta.source} reason=${meta.reason}`);
+            if (meta.reason !== 'drag' && meta.reason !== 'resize') {
+              appendLog(`onChange source=${meta.source} reason=${meta.reason}`);
+            }
           }}
           onPatch={(patches, meta) => {
-            appendLog(`onPatch source=${meta.source} reason=${meta.reason} count=${patches.length}`);
+            if (meta.reason !== 'drag' && meta.reason !== 'resize') {
+              appendLog(`onPatch source=${meta.source} reason=${meta.reason} count=${patches.length}`);
+            }
           }}
           containerClassName="demo-canvas"
-          renderSlot={(slot, node) => (
+          renderSlot={node => (
             <div className="demo-slot">
-              <span>{slot}</span>
+              <span>{String(node.data?.kind ?? 'node')}</span>
               <span>{String(node.data?.label ?? node.id)}</span>
             </div>
           )}

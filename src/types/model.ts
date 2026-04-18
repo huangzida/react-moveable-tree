@@ -23,9 +23,6 @@ export interface BoxBehavior {
 export interface BoxView {
   className?: string;
   style?: CSSProperties;
-  slot?: string;
-  slotProps?: Record<string, unknown>;
-  zIndex?: number;
 }
 
 export interface BoxNode {
@@ -62,10 +59,7 @@ export const boxNodeSchema: z.ZodType<BoxNode> = z.lazy(() =>
     view: z
       .object({
         className: z.string().optional(),
-        style: z.record(z.unknown()).optional(),
-        slot: z.string().optional(),
-        slotProps: z.record(z.unknown()).optional(),
-        zIndex: z.number().optional()
+        style: z.record(z.unknown()).optional()
       })
       .optional(),
     data: z.record(z.unknown()).optional(),

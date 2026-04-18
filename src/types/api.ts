@@ -24,7 +24,7 @@ export interface MoveableTreeProps {
   disabled?: boolean;
   containerClassName?: string;
   containerStyle?: CSSProperties;
-  renderSlot?: (slotName: string, node: BoxNode) => ReactNode;
+  renderSlot?: (node: BoxNode) => ReactNode;
   getNodeClassName?: (node: BoxNode) => string | undefined;
   getNodeStyle?: (node: BoxNode) => CSSProperties | undefined;
   onChange?: (tree: BoxNode[], meta: TreeChangeMeta) => void;

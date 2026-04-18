@@ -27,7 +27,27 @@ export const MoveableTree = forwardRef<MoveableTreeRef, MoveableTreeProps>((prop
   treeRef.current = tree;
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const nodeElementsRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const resizeStartRectRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
+  const renderSlotRef = useRef(props.renderSlot);
+  const getNodeClassNameRef = useRef(props.getNodeClassName);
+  const getNodeStyleRef = useRef(props.getNodeStyle);
   const rootSize = useMemo(() => ({ width: props.width, height: props.height }), [props.width, props.height]);
+
+  renderSlotRef.current = props.renderSlot;
+  getNodeClassNameRef.current = props.getNodeClassName;
+  getNodeStyleRef.current = props.getNodeStyle;
+
+  const renderSlot = useCallback<NonNullable<MoveableTreeProps['renderSlot']>>((node) => {
+    return renderSlotRef.current ? renderSlotRef.current(node) : null;
+  }, []);
+
+  const getNodeClassName = useCallback<NonNullable<MoveableTreeProps['getNodeClassName']>>((node) => {
+    return getNodeClassNameRef.current ? getNodeClassNameRef.current(node) : undefined;
+  }, []);
+
+  const getNodeStyle = useCallback<NonNullable<MoveableTreeProps['getNodeStyle']>>((node) => {
+    return getNodeStyleRef.current ? getNodeStyleRef.current(node) : undefined;
+  }, []);
 
   const findById = useCallback((id: string) => findNode(treeRef.current, id), []);
 
@@ -38,6 +58,18 @@ export const MoveableTree = forwardRef<MoveableTreeRef, MoveableTreeProps>((prop
     }
 
     nodeElementsRef.current.delete(id);
+  }, []);
+
+  const applyRectToElement = useCallback((id: string, rect: { x: number; y: number; width: number; height: number }) => {
+    const element = nodeElementsRef.current.get(id);
+    if (!element) {
+      return;
+    }
+
+    element.style.left = `${rect.x}px`;
+    element.style.top = `${rect.y}px`;
+    element.style.width = `${rect.width}px`;
+    element.style.height = `${rect.height}px`;
   }, []);
 
   const applyNextTree = useCallback(
@@ -103,9 +135,25 @@ export const MoveableTree = forwardRef<MoveableTreeRef, MoveableTreeProps>((prop
         return;
       }
 
-      updateNodePatch(id, { rect }, 'user', reason);
+      const nextTree = updateNodeWithConstraints(treeRef.current, id, { rect }, rootSize);
+      const nextNode = findNode(nextTree, id);
+      if (!nextNode) {
+        return;
+      }
+
+      if (
+        current.rect.x === nextNode.rect.x &&
+        current.rect.y === nextNode.rect.y &&
+        current.rect.width === nextNode.rect.width &&
+        current.rect.height === nextNode.rect.height
+      ) {
+        return;
+      }
+
+      applyRectToElement(id, nextNode.rect);
+      applyNextTree(nextTree, { source: 'user', reason }, patchRect(id, current.rect, nextNode.rect));
     },
-    [findById, updateNodePatch]
+    [applyNextTree, applyRectToElement, findById, patchRect, rootSize]
   );
 
   useImperativeHandle(
@@ -242,6 +290,7 @@ export const MoveableTree = forwardRef<MoveableTreeRef, MoveableTreeProps>((prop
       {!props.disabled ? (
         <Moveable
           target={selectedElement}
+          origin={false}
           draggable
           resizable
           keepRatio={false}
@@ -268,11 +317,23 @@ export const MoveableTree = forwardRef<MoveableTreeRef, MoveableTreeProps>((prop
 
             updateNodeRectByUser(selectedId, nextRect, 'drag');
           }}
+          onResizeStart={() => {
+            if (!selectedId) {
+              return;
+            }
+
+            const current = findById(selectedId);
+            if (!current) {
+              return;
+            }
+
+            resizeStartRectRef.current = { ...current.rect };
+          }}
           onResize={
             (event: {
               width: number;
               height: number;
-              drag?: { beforeTranslate?: number[] };
+              drag?: { left?: number; top?: number; beforeTranslate?: number[] };
             }) => {
               if (!selectedId) {
                 return;
@@ -283,9 +344,12 @@ export const MoveableTree = forwardRef<MoveableTreeRef, MoveableTreeProps>((prop
                 return;
               }
 
+              const dragLeft = event.drag?.left;
+              const dragTop = event.drag?.top;
               const beforeTranslate = event.drag?.beforeTranslate;
-              const translateX = beforeTranslate?.[0] ?? current.rect.x;
-              const translateY = beforeTranslate?.[1] ?? current.rect.y;
+              const resizeStartRect = resizeStartRectRef.current ?? current.rect;
+              const translateX = dragLeft ?? resizeStartRect.x + (beforeTranslate?.[0] ?? 0);
+              const translateY = dragTop ?? resizeStartRect.y + (beforeTranslate?.[1] ?? 0);
               updateNodeRectByUser(
                 selectedId,
                 {
@@ -298,15 +362,18 @@ export const MoveableTree = forwardRef<MoveableTreeRef, MoveableTreeProps>((prop
               );
             }
           }
+          onResizeEnd={() => {
+            resizeStartRectRef.current = null;
+          }}
         />
       ) : null}
       {tree.map(node => (
         <TreeNode
           key={node.id}
           node={node}
-          renderSlot={props.renderSlot}
-          getNodeClassName={props.getNodeClassName}
-          getNodeStyle={props.getNodeStyle}
+          renderSlot={renderSlot}
+          getNodeClassName={getNodeClassName}
+          getNodeStyle={getNodeStyle}
           selectedId={selectedId}
           onSelect={setSelectedId}
           registerNodeElement={registerNodeElement}

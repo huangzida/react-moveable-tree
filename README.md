@@ -29,7 +29,7 @@ const initialTree: BoxNode[] = [
 	{
 		id: 'root-A',
 		rect: { x: 20, y: 20, width: 320, height: 220 },
-		view: { slot: 'group' },
+		view: { className: 'group-node' },
 		children: [{ id: 'A-1', rect: { x: 16, y: 16, width: 120, height: 80 }, children: [] }]
 	}
 ];
@@ -48,9 +48,9 @@ export function Example() {
 			onPatch={(patches, meta) => {
 				console.log('patches', patches, meta);
 			}}
-			renderSlot={(slot, node) => (
+			renderSlot={(node) => (
 				<span>
-					{slot}:{node.id}
+					{String(node.data?.kind ?? 'node')}:{node.id}
 				</span>
 			)}
 			getNodeClassName={(node) =>
@@ -95,9 +95,19 @@ npm run demo
 
 打开浏览器访问 Vite 输出地址即可使用示例页。
 
+## GitHub Pages 自动部署（Demo）
+
+仓库已包含工作流 [ .github/workflows/deploy-demo-pages.yml ]，当你 push 到 `main` 时会自动构建并部署 `demo` 到 GitHub Pages。
+
+首次使用前请确认：
+
+- 仓库 `Settings` -> `Pages` -> `Source` 已设置为 **GitHub Actions**
+- 默认分支为 `main`（或自行修改工作流触发分支）
+
 ## 脚本
 
 - `npm run demo`：启动示例页（Vite dev server）
+- `npm run build:demo`：构建示例页静态产物（`demo-dist`）
 - `npm run typecheck`：TypeScript 检查
 - `npm run test`：运行 Vitest
 - `npm run build`：构建组件库产物

@@ -1,10 +1,11 @@
 import clsx from 'clsx';
+import { memo } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { BoxNode } from '../types/model';
 
 interface TreeNodeProps {
   node: BoxNode;
-  renderSlot?: (slotName: string, node: BoxNode) => ReactNode;
+  renderSlot?: (node: BoxNode) => ReactNode;
   getNodeClassName?: (node: BoxNode) => string | undefined;
   getNodeStyle?: (node: BoxNode) => CSSProperties | undefined;
   selectedId?: string;
@@ -12,7 +13,7 @@ interface TreeNodeProps {
   registerNodeElement?: (id: string, element: HTMLDivElement | null) => void;
 }
 
-export function TreeNode({
+function TreeNodeComponent({
   node,
   renderSlot,
   getNodeClassName,
@@ -26,7 +27,10 @@ export function TreeNode({
       data-testid={`node-${node.id}`}
       data-selected={selectedId === node.id ? 'true' : 'false'}
       ref={element => registerNodeElement?.(node.id, element)}
-      onMouseDown={() => onSelect?.(node.id)}
+      onMouseDown={event => {
+        event.stopPropagation();
+        onSelect?.(node.id);
+      }}
       className={clsx('rmt-node', node.view?.className, getNodeClassName?.(node))}
       style={{
         position: 'absolute',
@@ -38,7 +42,7 @@ export function TreeNode({
         ...(getNodeStyle?.(node) ?? {})
       }}
     >
-      {node.view?.slot ? renderSlot?.(node.view.slot, node) : null}
+      {renderSlot?.(node)}
       {(node.children ?? []).map(child => (
         <TreeNode
           key={child.id}
@@ -54,3 +58,17 @@ export function TreeNode({
     </div>
   );
 }
+
+function areTreeNodePropsEqual(prev: TreeNodeProps, next: TreeNodeProps): boolean {
+  return (
+    prev.node === next.node &&
+    prev.selectedId === next.selectedId &&
+    prev.renderSlot === next.renderSlot &&
+    prev.getNodeClassName === next.getNodeClassName &&
+    prev.getNodeStyle === next.getNodeStyle &&
+    prev.onSelect === next.onSelect &&
+    prev.registerNodeElement === next.registerNodeElement
+  );
+}
+
+export const TreeNode = memo(TreeNodeComponent, areTreeNodePropsEqual);

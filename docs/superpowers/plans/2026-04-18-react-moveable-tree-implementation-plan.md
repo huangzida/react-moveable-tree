@@ -6,7 +6,7 @@
 
 **Architecture:** Use a layered design with pure TypeScript core logic for tree/constraint handling, a React binding layer for state bridging, and a recursive Moveable-powered UI layer. Keep geometric rules and tree mutations in core so UI remains thin and extensible.
 
-**Tech Stack:** Vite (library mode), React, TypeScript, react-moveable, Immer, Zod, Vitest, React Testing Library, Changesets.
+**Tech Stack:** Vite (library mode), React, TypeScript, react-moveable, Immer, Zod, Vitest, React Testing Library, @changesets/cli.
 
 ---
 
@@ -94,7 +94,7 @@ Expected: FAIL with "Cannot find module '../../package.json'" because tooling is
     "vite": "^7.2.0",
     "vitest": "^3.2.4",
     "jsdom": "^26.1.0",
-    "changesets": "^2.29.6"
+    "@changesets/cli": "^2.29.6"
   },
   "scripts": {
     "dev": "vite",
