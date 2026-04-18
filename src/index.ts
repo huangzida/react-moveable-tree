@@ -1,0 +1,1 @@
+export const __placeholder = 'react-moveable-tree';
