@@ -1,0 +1,54 @@
+name: Publish Package to npmjs
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify tag matches package version
+        if: github.event_name == 'push'
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+
+          if [ "$TAG" != "$PKG_VERSION" ] && [ "$TAG" != "v$PKG_VERSION" ]; then
+            echo "Tag $TAG does not match package version $PKG_VERSION"
+            exit 1
+          fi
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Build package
+        run: npm run build
+
+      - name: Simulate publish payload
+        run: npm publish --dry-run --access public
+
+      - name: Publish to npmjs
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
