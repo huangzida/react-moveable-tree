@@ -10,7 +10,14 @@ export default defineConfig({
       fileName: 'react-moveable-tree'
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'react-moveable']
+      external: ['react', 'react-dom', 'react-moveable'],
+      output: {
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM',
+          'react-moveable': 'Moveable'
+        }
+      }
     }
   }
 });

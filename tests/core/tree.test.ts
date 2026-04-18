@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addNode, findNode, removeNode, updateNodeRect } from '../../src/core/tree';
+import { addNode, findNode, normalizeTreeRects, removeNode, updateNodeRect, updateNodeWithConstraints } from '../../src/core/tree';
 import type { BoxNode } from '../../src/types/model';
 
 const tree: BoxNode[] = [
@@ -28,5 +28,44 @@ describe('tree operations', () => {
 
     const removed = removeNode(withNode, 'c');
     expect(findNode(removed, 'c')).toBeUndefined();
+  });
+
+  it('clamps node rect when updating with constraints', () => {
+    const next = updateNodeWithConstraints(
+      tree,
+      'b',
+      {
+        rect: { x: 300, y: 300, width: 400, height: 400 }
+      },
+      { width: 500, height: 500 }
+    );
+
+    const child = findNode(next, 'b');
+    expect(child?.rect.x).toBe(0);
+    expect(child?.rect.y).toBe(0);
+    expect(child?.rect.width).toBe(200);
+    expect(child?.rect.height).toBe(120);
+  });
+
+  it('normalizes imported tree recursively within bounds', () => {
+    const next = normalizeTreeRects(
+      [
+        {
+          id: 'root',
+          rect: { x: 250, y: 250, width: 200, height: 200 },
+          children: [
+            {
+              id: 'child',
+              rect: { x: 180, y: 180, width: 100, height: 100 },
+              children: []
+            }
+          ]
+        }
+      ],
+      { width: 300, height: 300 }
+    );
+
+    expect(findNode(next, 'root')?.rect).toEqual({ x: 100, y: 100, width: 200, height: 200 });
+    expect(findNode(next, 'child')?.rect).toEqual({ x: 100, y: 100, width: 100, height: 100 });
   });
 });

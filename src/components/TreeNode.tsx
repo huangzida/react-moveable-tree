@@ -7,12 +7,26 @@ interface TreeNodeProps {
   renderSlot?: (slotName: string, node: BoxNode) => ReactNode;
   getNodeClassName?: (node: BoxNode) => string | undefined;
   getNodeStyle?: (node: BoxNode) => CSSProperties | undefined;
+  selectedId?: string;
+  onSelect?: (id: string) => void;
+  registerNodeElement?: (id: string, element: HTMLDivElement | null) => void;
 }
 
-export function TreeNode({ node, renderSlot, getNodeClassName, getNodeStyle }: TreeNodeProps) {
+export function TreeNode({
+  node,
+  renderSlot,
+  getNodeClassName,
+  getNodeStyle,
+  selectedId,
+  onSelect,
+  registerNodeElement
+}: TreeNodeProps) {
   return (
     <div
       data-testid={`node-${node.id}`}
+      data-selected={selectedId === node.id ? 'true' : 'false'}
+      ref={element => registerNodeElement?.(node.id, element)}
+      onMouseDown={() => onSelect?.(node.id)}
       className={clsx('rmt-node', node.view?.className, getNodeClassName?.(node))}
       style={{
         position: 'absolute',
@@ -32,6 +46,9 @@ export function TreeNode({ node, renderSlot, getNodeClassName, getNodeStyle }: T
           renderSlot={renderSlot}
           getNodeClassName={getNodeClassName}
           getNodeStyle={getNodeStyle}
+          selectedId={selectedId}
+          onSelect={onSelect}
+          registerNodeElement={registerNodeElement}
         />
       ))}
     </div>

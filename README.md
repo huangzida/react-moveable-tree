@@ -1,63 +1,108 @@
 # react-moveable-tree
 
-A React component library for nested draggable/resizable boxes inside bounded containers.
+`react-moveable-tree` 是一个面向 React 17+ 的树形可视化编辑组件库，基于 `react-moveable` 提供嵌套节点的拖拽、缩放、父容器边界约束和外部命令式控制能力。
 
-## Status
+## 核心能力
 
-Design phase in progress. See the specification:
+- React 17+ 兼容（`react` / `react-dom` 为 peerDependencies）
+- 支持树形嵌套节点渲染（节点坐标相对父容器）
+- 节点拖拽与缩放，运行时强制约束在父容器范围内
+- 受控与非受控双模式
+- 命令式 API：整树读写、单节点/批量节点更新、增删移动、JSON 导入导出
+- 可扩展渲染能力：`renderSlot`、`getNodeClassName`、`getNodeStyle`
+- 变更事件：`onChange` + `onPatch`
 
-- docs/superpowers/specs/2026-04-18-react-moveable-tree-design.md
+## 安装
 
-## Goals
-
-- React 17+ compatibility
-- Vite + React + TypeScript + Moveable
-- Tree-based nested box rendering
-- Controlled and uncontrolled data modes
-- External imperative APIs for full and targeted updates
-- Strong extensibility for future interaction capabilities
-
-## Usage
-
-```tsx
-import { MoveableTree } from 'react-moveable-tree';
-import { useRef } from 'react';
-import type { MoveableTreeRef } from 'react-moveable-tree';
-
-const ref = useRef<MoveableTreeRef>(null);
-
-<MoveableTree
-	ref={ref}
-	width={800}
-	height={500}
-	value={tree}
-	onChange={(next, meta) => setTree(next)}
-	renderSlot={(slot, node) => (
-		<span>
-			{slot}:{node.id}
-		</span>
-	)}
-/>
-
-ref.current?.updateNode('node-1', {
-	rect: { x: 20, y: 30, width: 220, height: 160 }
-});
+```bash
+npm install react-moveable-tree
 ```
 
-### Non-controlled mode
+## 快速使用
 
-Use `defaultValue` instead of `value`.
+```tsx
+import { useRef, useState } from 'react';
+import { MoveableTree } from 'react-moveable-tree';
+import type { BoxNode, MoveableTreeRef } from 'react-moveable-tree';
 
-### Imperative methods
+const initialTree: BoxNode[] = [
+	{
+		id: 'root-A',
+		rect: { x: 20, y: 20, width: 320, height: 220 },
+		view: { slot: 'group' },
+		children: [{ id: 'A-1', rect: { x: 16, y: 16, width: 120, height: 80 }, children: [] }]
+	}
+];
 
-- getTree
-- setTree
-- getNode
-- updateNode
-- updateNodes
-- addNode
-- removeNode
-- moveNode
-- focusNode
-- exportJSON
-- importJSON
+export function Example() {
+	const ref = useRef<MoveableTreeRef>(null);
+	const [tree, setTree] = useState<BoxNode[]>(initialTree);
+
+	return (
+		<MoveableTree
+			ref={ref}
+			width={820}
+			height={560}
+			value={tree}
+			onChange={(nextTree) => setTree(nextTree)}
+			onPatch={(patches, meta) => {
+				console.log('patches', patches, meta);
+			}}
+			renderSlot={(slot, node) => (
+				<span>
+					{slot}:{node.id}
+				</span>
+			)}
+			getNodeClassName={(node) =>
+				String(node.data?.kind ?? 'leaf') === 'group' ? 'rmt-node-group' : 'rmt-node-leaf'
+			}
+			getNodeStyle={(node) =>
+				String(node.data?.kind ?? 'leaf') === 'group'
+					? { border: '1px dashed #7aa2d9' }
+					: { border: '1px solid #b8bfd0' }
+			}
+		/>
+	);
+}
+```
+
+非受控模式：使用 `defaultValue` 替代 `value`。
+
+## 命令式 API
+
+`MoveableTreeRef` 提供以下方法：
+
+- `getTree()`
+- `setTree(next)`
+- `getNode(id)`
+- `updateNode(id, patch, meta?)`
+- `updateNodes(patches, meta?)`
+- `addNode(parentId, node, meta?)`
+- `removeNode(id, meta?)`
+- `moveNode(id, toParentId, index?, meta?)`
+- `focusNode(id)`
+- `exportJSON()`
+- `importJSON(raw, meta?)`
+
+## 本地开发与示例页
+
+仓库内已提供完整示例页，覆盖拖拽/缩放、边界约束、slot、class/style、自定义事件与全部 ref API 的交互测试。
+
+```bash
+npm install
+npm run demo
+```
+
+打开浏览器访问 Vite 输出地址即可使用示例页。
+
+## 脚本
+
+- `npm run demo`：启动示例页（Vite dev server）
+- `npm run typecheck`：TypeScript 检查
+- `npm run test`：运行 Vitest
+- `npm run build`：构建组件库产物
+
+## 设计与计划文档
+
+- `docs/superpowers/specs/2026-04-18-react-moveable-tree-design.md`
+- `docs/superpowers/plans/2026-04-18-react-moveable-tree-implementation-plan.md`

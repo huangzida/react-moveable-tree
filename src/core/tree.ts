@@ -1,5 +1,11 @@
 import { produce } from 'immer';
+import { clampDragRect, clampResizeRect } from './constraints';
 import type { BoxNode, BoxRect, NodeId } from '../types/model';
+
+interface Size {
+  width: number;
+  height: number;
+}
 
 export function findNode(tree: BoxNode[], id: NodeId): BoxNode | undefined {
   for (const node of tree) {
@@ -133,4 +139,80 @@ export function moveNode(tree: BoxNode[], id: NodeId, toParentId: NodeId, index 
 
     walk(draft);
   });
+}
+
+export function findParentNode(tree: BoxNode[], id: NodeId, parent?: BoxNode): BoxNode | undefined {
+  for (const node of tree) {
+    if (node.id === id) {
+      return parent;
+    }
+
+    const found = findParentNode(node.children ?? [], id, node);
+    if (found) {
+      return found;
+    }
+  }
+
+  return undefined;
+}
+
+export function getParentSize(tree: BoxNode[], id: NodeId, rootSize: Size): Size {
+  const parent = findParentNode(tree, id);
+  if (!parent) {
+    return rootSize;
+  }
+
+  return {
+    width: parent.rect.width,
+    height: parent.rect.height
+  };
+}
+
+function normalizeNodeRect(node: BoxNode, parentSize: Size): BoxRect {
+  const dragged = clampDragRect(node.rect, parentSize);
+  const resized = clampResizeRect(dragged, parentSize, node.behavior);
+  return clampDragRect(resized, parentSize);
+}
+
+export function normalizeTreeRects(tree: BoxNode[], rootSize: Size): BoxNode[] {
+  return produce(tree, draft => {
+    const walk = (nodes: BoxNode[], parentSize: Size): void => {
+      for (const node of nodes) {
+        node.rect = normalizeNodeRect(node, parentSize);
+        walk(node.children ?? [], {
+          width: node.rect.width,
+          height: node.rect.height
+        });
+      }
+    };
+
+    walk(draft, rootSize);
+  });
+}
+
+export function updateNodeWithConstraints(
+  tree: BoxNode[],
+  id: NodeId,
+  patch: Partial<BoxNode>,
+  rootSize: Size
+): BoxNode[] {
+  const current = findNode(tree, id);
+  if (!current) {
+    return tree;
+  }
+
+  const nextPatch = { ...patch };
+  if (patch.rect) {
+    const parentSize = getParentSize(tree, id, rootSize);
+    nextPatch.rect = normalizeNodeRect(
+      {
+        ...current,
+        ...patch,
+        rect: patch.rect
+      },
+      parentSize
+    );
+  }
+
+  return updateNode(tree, id, nextPatch);
 }
