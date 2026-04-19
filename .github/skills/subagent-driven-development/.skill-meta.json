@@ -1,0 +1,9 @@
+{
+  "name": "subagent-driven-development",
+  "source": "obra-superpowers",
+  "description": "Use when executing implementation plans with independent tasks in the current session",
+  "description_ja": "Subagent Driven Development",
+  "whenToUse": "```dot; Same session (no context switch); Fresh subagent per task (no context pollution); Two-stage review after each task: spec compliance first, then code quality",
+  "categories": [],
+  "installedAt": "2026-04-19T00:29:54.230Z"
+}

@@ -1,0 +1,9 @@
+{
+  "name": "test-driven-development",
+  "source": "obra-superpowers",
+  "description": "Use when implementing any feature or bugfix, before writing implementation code",
+  "description_ja": "Test-driven development (TDD)",
+  "whenToUse": "**Always:**; New features; Bug fixes; Refactoring; Behavior changes; Throwaway prototypes; Generated code; Configuration files",
+  "categories": [],
+  "installedAt": "2026-04-19T00:30:00.880Z"
+}

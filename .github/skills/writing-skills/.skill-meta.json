@@ -1,0 +1,9 @@
+{
+  "name": "writing-skills",
+  "source": "obra-superpowers",
+  "description": "Use when creating new skills, editing existing skills, or verifying skills work before deployment",
+  "description_ja": "Writing Skills",
+  "whenToUse": "[Small inline flowchart IF decision non-obvious]",
+  "categories": [],
+  "installedAt": "2026-04-19T00:30:16.618Z"
+}

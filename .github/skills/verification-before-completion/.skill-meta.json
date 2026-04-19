@@ -1,0 +1,8 @@
+{
+  "name": "verification-before-completion",
+  "source": "obra-superpowers",
+  "description": "Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence...",
+  "description_ja": "Verification Before Completion",
+  "categories": [],
+  "installedAt": "2026-04-19T00:30:08.310Z"
+}
