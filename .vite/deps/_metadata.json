@@ -1,0 +1,58 @@
+{
+  "hash": "4f5056dd",
+  "configHash": "d850fbaf",
+  "lockfileHash": "dd268b79",
+  "browserHash": "93056257",
+  "optimized": {
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "d0332107",
+      "needsInterop": true
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "b7d95c5c",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "f43e8898",
+      "needsInterop": true
+    },
+    "react-moveable": {
+      "src": "../../node_modules/react-moveable/dist/moveable.esm.js",
+      "file": "react-moveable.js",
+      "fileHash": "095cface",
+      "needsInterop": false
+    },
+    "clsx": {
+      "src": "../../node_modules/clsx/dist/clsx.mjs",
+      "file": "clsx.js",
+      "fileHash": "ae835d7f",
+      "needsInterop": false
+    },
+    "immer": {
+      "src": "../../node_modules/immer/dist/immer.mjs",
+      "file": "immer.js",
+      "fileHash": "5c29ab1a",
+      "needsInterop": false
+    },
+    "zod": {
+      "src": "../../node_modules/zod/index.js",
+      "file": "zod.js",
+      "fileHash": "351b38a7",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-K3W77EYD": {
+      "file": "chunk-K3W77EYD.js"
+    },
+    "chunk-G3PMV62Z": {
+      "file": "chunk-G3PMV62Z.js"
+    }
+  }
+}

@@ -43,11 +43,14 @@ const formatTree = (tree: BoxNode[]): string => JSON.stringify(tree, null, 2);
 
 export function DemoApp() {
   const [tree, setTree] = useState<BoxNode[]>(() => createInitialTree());
+  const [theme, setTheme] = useState<'warm' | 'noir'>('warm');
   const [targetNodeId, setTargetNodeId] = useState('A-1');
   const [targetParentId, setTargetParentId] = useState('root-B');
   const [jsonEditor, setJsonEditor] = useState(formatTree(createInitialTree()));
   const [latestNodeInfo, setLatestNodeInfo] = useState('');
   const [logs, setLogs] = useState<string[]>([]);
+  const [eventStats, setEventStats] = useState({ changeEvents: 0, patchBatches: 0 });
+  const [lastActionMs, setLastActionMs] = useState<number | null>(null);
   const ref = useRef<MoveableTreeRef>(null);
 
   const nodeIdOptions = useMemo(() => {
@@ -62,11 +65,22 @@ export function DemoApp() {
     return ids;
   }, [tree]);
 
+  const rootGroupCount = tree.length;
+  const totalNodeCount = nodeIdOptions.length;
+  const logCount = logs.length;
+  const themeLabel = theme === 'warm' ? '暖调工作台' : '夜航工作台';
+
   const appendLog = (line: string) => {
     setLogs(prev => {
       const next = [`${new Date().toLocaleTimeString()} ${line}`, ...prev];
       return next.slice(0, 18);
     });
+  };
+
+  const runMeasured = (task: () => void) => {
+    const start = performance.now();
+    task();
+    setLastActionMs(Number((performance.now() - start).toFixed(2)));
   };
 
   const addChild = () => {
@@ -190,136 +204,229 @@ export function DemoApp() {
   };
 
   return (
-    <div className="demo-shell">
-      <section className="demo-panel demo-controls">
-        <h1>react-moveable-tree 功能示例</h1>
-        <p>左侧是 API 操作面板，右侧是可拖拽/缩放的树形节点画布。</p>
-
-        <div className="demo-row">
-          <label htmlFor="target-node">目标节点 ID</label>
-          <select id="target-node" value={targetNodeId} onChange={event => setTargetNodeId(event.target.value)}>
-            {nodeIdOptions.map(id => (
-              <option key={id} value={id}>
-                {id}
-              </option>
-            ))}
-          </select>
+    <div className="demo-app" data-theme={theme}>
+      <div className="demo-backdrop" aria-hidden="true" />
+      <header className="demo-hero">
+        <div className="demo-hero-copy">
+          <p className="demo-kicker">React Moveable Tree Playground</p>
+          <h1>节点编排工作台</h1>
+          <p className="demo-subtitle">通过 API 面板驱动树结构，再在画布中实时拖拽与缩放，观察状态与补丁流转。</p>
+          <div className="demo-hero-tools">
+            <button type="button" className="demo-theme-toggle" onClick={() => setTheme(prev => (prev === 'warm' ? 'noir' : 'warm'))}>
+              切换到{theme === 'warm' ? '夜航' : '暖调'}主题
+            </button>
+            <span>{themeLabel}</span>
+          </div>
         </div>
-
-        <div className="demo-row">
-          <label htmlFor="target-parent">移动目标父节点</label>
-          <select id="target-parent" value={targetParentId} onChange={event => setTargetParentId(event.target.value)}>
-            {nodeIdOptions
-              .filter(id => id !== targetNodeId)
-              .map(id => (
-                <option key={id} value={id}>
-                  {id}
-                </option>
-              ))}
-          </select>
+        <div className="demo-metric-strip" aria-label="当前树统计">
+          <div className="demo-metric">
+            <span>Root Groups</span>
+            <strong>{rootGroupCount}</strong>
+          </div>
+          <div className="demo-metric">
+            <span>Total Nodes</span>
+            <strong>{totalNodeCount}</strong>
+          </div>
+          <div className="demo-metric">
+            <span>Change Events</span>
+            <strong>{eventStats.changeEvents}</strong>
+          </div>
+          <div className="demo-metric">
+            <span>Patch Batches</span>
+            <strong>{eventStats.patchBatches}</strong>
+          </div>
+          <div className="demo-metric">
+            <span>Last Action</span>
+            <strong data-wide="true">{lastActionMs === null ? '--' : `${lastActionMs}ms`}</strong>
+          </div>
+          <div className="demo-metric">
+            <span>Recent Logs</span>
+            <strong>{logCount}</strong>
+          </div>
         </div>
+      </header>
 
-        <div className="demo-actions">
-          <button type="button" onClick={focusNode}>
-            focusNode
-          </button>
-          <button type="button" onClick={inspectNode}>
-            getNode
-          </button>
-          <button type="button" onClick={updateNodeRect}>
-            updateNode
-          </button>
-          <button type="button" onClick={batchUpdate}>
-            updateNodes
-          </button>
-          <button type="button" onClick={addChild}>
-            addNode
-          </button>
-          <button type="button" className="danger" onClick={removeNode}>
-            removeNode
-          </button>
-          <button type="button" onClick={moveNode}>
-            moveNode
-          </button>
-          <button type="button" onClick={setTreeByApi}>
-            setTree
-          </button>
-          <button type="button" onClick={snapshotTree}>
-            getTree
-          </button>
-          <button type="button" onClick={exportJson}>
-            exportJSON
-          </button>
-          <button type="button" onClick={importJson}>
-            importJSON
-          </button>
-        </div>
+      <main className="demo-layout">
+        <section className="demo-console" aria-label="API 控制台">
+          <div className="demo-card">
+            <h2>目标上下文</h2>
+            <p>选择目标节点与移动目标父节点，下面的 API 操作都会基于这两个字段执行。</p>
+            <div className="demo-field-grid">
+              <div className="demo-row">
+                <label htmlFor="target-node">目标节点 ID</label>
+                <select id="target-node" value={targetNodeId} onChange={event => setTargetNodeId(event.target.value)}>
+                  {nodeIdOptions.map(id => (
+                    <option key={id} value={id}>
+                      {id}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-        <div className="demo-row">
-          <label htmlFor="json-editor">JSON 编辑器（getTree/exportJSON 输出，importJSON 输入）</label>
-          <textarea
-            id="json-editor"
-            value={jsonEditor}
-            onChange={event => setJsonEditor(event.target.value)}
-          />
-        </div>
-
-        <div className="demo-row">
-          <label htmlFor="node-view">节点详情（getNode）</label>
-          <textarea id="node-view" value={latestNodeInfo} readOnly />
-        </div>
-
-        <div className="demo-row">
-          <label>事件日志（onChange / onPatch）</label>
-          <div className="demo-log">{logs.join('\n') || '暂无日志'}</div>
-        </div>
-      </section>
-
-      <section className="demo-panel demo-playground">
-        <div className="demo-playground-header">
-          <h2>交互画布</h2>
-          <span>点击节点后可拖拽 / 缩放，约束始终在父容器内</span>
-        </div>
-
-        <MoveableTree
-          ref={ref}
-          width={820}
-          height={620}
-          value={tree}
-          onChange={(nextTree, meta) => {
-            setTree(nextTree);
-            if (meta.reason !== 'drag' && meta.reason !== 'resize') {
-              appendLog(`onChange source=${meta.source} reason=${meta.reason}`);
-            }
-          }}
-          onPatch={(patches, meta) => {
-            if (meta.reason !== 'drag' && meta.reason !== 'resize') {
-              appendLog(`onPatch source=${meta.source} reason=${meta.reason} count=${patches.length}`);
-            }
-          }}
-          containerClassName="demo-canvas"
-          renderSlot={node => (
-            <div className="demo-slot">
-              <span>{String(node.data?.kind ?? 'node')}</span>
-              <span>{String(node.data?.label ?? node.id)}</span>
+              <div className="demo-row">
+                <label htmlFor="target-parent">移动目标父节点</label>
+                <select
+                  id="target-parent"
+                  value={targetParentId}
+                  onChange={event => setTargetParentId(event.target.value)}
+                >
+                  {nodeIdOptions
+                    .filter(id => id !== targetNodeId)
+                    .map(id => (
+                      <option key={id} value={id}>
+                        {id}
+                      </option>
+                    ))}
+                </select>
+              </div>
             </div>
-          )}
-          getNodeClassName={node => {
-            const kind = String(node.data?.kind ?? 'leaf');
-            return kind === 'group' ? 'rmt-demo-node rmt-demo-node--group' : 'rmt-demo-node';
-          }}
-          getNodeStyle={node => {
-            const kind = String(node.data?.kind ?? 'leaf');
-            return kind === 'group'
-              ? {
-                  boxShadow: 'inset 0 0 0 1px rgba(18, 79, 155, 0.12)'
-                }
-              : {
-                  background: '#ffffff'
-                };
-          }}
-        />
-      </section>
+          </div>
+
+          <div className="demo-card">
+            <h2>操作面板</h2>
+            <div className="demo-action-cluster">
+              <h3>节点查询与更新</h3>
+              <div className="demo-action-grid">
+                <button type="button" onClick={() => runMeasured(focusNode)}>
+                  focusNode
+                </button>
+                <button type="button" onClick={() => runMeasured(inspectNode)}>
+                  getNode
+                </button>
+                <button type="button" onClick={() => runMeasured(updateNodeRect)}>
+                  updateNode
+                </button>
+                <button type="button" onClick={() => runMeasured(batchUpdate)}>
+                  updateNodes
+                </button>
+              </div>
+            </div>
+
+            <div className="demo-action-cluster">
+              <h3>树结构调整</h3>
+              <div className="demo-action-grid">
+                <button type="button" onClick={() => runMeasured(addChild)}>
+                  addNode
+                </button>
+                <button type="button" className="danger" onClick={() => runMeasured(removeNode)}>
+                  removeNode
+                </button>
+                <button type="button" onClick={() => runMeasured(moveNode)}>
+                  moveNode
+                </button>
+                <button type="button" onClick={() => runMeasured(setTreeByApi)}>
+                  setTree
+                </button>
+              </div>
+            </div>
+
+            <div className="demo-action-cluster">
+              <h3>序列化与快照</h3>
+              <div className="demo-action-grid">
+                <button type="button" onClick={() => runMeasured(snapshotTree)}>
+                  getTree
+                </button>
+                <button type="button" onClick={() => runMeasured(exportJson)}>
+                  exportJSON
+                </button>
+                <button type="button" className="accent" onClick={() => runMeasured(importJson)}>
+                  importJSON
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="demo-card">
+            <h2>数据窗口</h2>
+            <div className="demo-row">
+              <label htmlFor="json-editor">JSON 编辑器（可直接 importJSON）</label>
+              <textarea
+                id="json-editor"
+                value={jsonEditor}
+                onChange={event => setJsonEditor(event.target.value)}
+              />
+            </div>
+
+            <div className="demo-row">
+              <label htmlFor="node-view">节点详情（getNode 输出）</label>
+              <textarea id="node-view" value={latestNodeInfo} readOnly />
+            </div>
+
+            <div className="demo-row">
+              <label>事件日志（onChange / onPatch）</label>
+              <div className="demo-log">{logs.join('\n') || '暂无日志'}</div>
+            </div>
+          </div>
+        </section>
+
+        <section className="demo-stage" aria-label="交互画布">
+          <div className="demo-stage-header">
+            <h2>交互画布</h2>
+            <div className="demo-stage-tags">
+              <span>选中后拖拽 / 缩放</span>
+              <span>约束保持在父容器内</span>
+              <span>目标节点: {targetNodeId}</span>
+            </div>
+          </div>
+
+          <MoveableTree
+            ref={ref}
+            width={820}
+            height={620}
+            value={tree}
+            onChange={(nextTree, meta) => {
+              setTree(nextTree);
+              if (meta.reason !== 'drag' && meta.reason !== 'resize') {
+                setEventStats(prev => ({
+                  ...prev,
+                  changeEvents: prev.changeEvents + 1
+                }));
+                appendLog(`onChange source=${meta.source} reason=${meta.reason}`);
+              }
+            }}
+            onPatch={(patches, meta) => {
+              if (meta.reason !== 'drag' && meta.reason !== 'resize') {
+                setEventStats(prev => ({
+                  ...prev,
+                  patchBatches: prev.patchBatches + 1
+                }));
+                appendLog(`onPatch source=${meta.source} reason=${meta.reason} count=${patches.length}`);
+              }
+            }}
+            containerClassName="demo-canvas"
+            renderSlot={node => (
+              <div className="demo-slot">
+                <span>{String(node.data?.kind ?? 'node')}</span>
+                <span>{String(node.data?.label ?? node.id)}</span>
+              </div>
+            )}
+            getNodeClassName={node => {
+              const kind = String(node.data?.kind ?? 'leaf');
+              return kind === 'group' ? 'rmt-demo-node rmt-demo-node--group' : 'rmt-demo-node';
+            }}
+            getNodeStyle={node => {
+              const kind = String(node.data?.kind ?? 'leaf');
+              return kind === 'group'
+                ? {
+                    boxShadow:
+                      theme === 'noir'
+                        ? 'inset 0 0 0 1px rgba(138, 168, 214, 0.24)'
+                        : 'inset 0 0 0 1px rgba(41, 62, 97, 0.25)',
+                    background:
+                      theme === 'noir'
+                        ? 'linear-gradient(140deg, rgba(24, 34, 49, 0.92), rgba(35, 45, 63, 0.82))'
+                        : 'linear-gradient(140deg, rgba(241, 246, 255, 0.92), rgba(255, 255, 255, 0.8))'
+                  }
+                : {
+                    background:
+                      theme === 'noir'
+                        ? 'linear-gradient(140deg, rgba(44, 56, 78, 0.95), rgba(31, 40, 56, 0.95))'
+                        : 'linear-gradient(140deg, #ffffff, #f8f4ef)'
+                  };
+            }}
+          />
+        </section>
+      </main>
     </div>
   );
 }
